@@ -937,7 +937,7 @@ public class ApplicationPackageManager extends PackageManager {
             }
         }
 
-        if (name != null && FEATURES_TENSOR.contains(name) && !IS_TENSOR_DEVICE) {
+        if (name != null && FEATURES_TENSOR.contains(name) && !IS_TENSOR_DEVICE && (pkg == null || !"com.google.android.dialer".equals(pkg))) {
             return false;
         }
 
