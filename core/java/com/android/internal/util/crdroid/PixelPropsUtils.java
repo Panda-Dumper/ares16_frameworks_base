@@ -417,22 +417,4 @@ public final class PixelPropsUtils {
         }
         return content.toString();
     }
-
-    private static boolean isCallerSafetyNet() {
-        for (StackTraceElement e : Thread.currentThread().getStackTrace()) {
-            final String cn = e.getClassName();
-            if (cn != null && (cn.contains("DroidGuard") || cn.contains("droidguard"))) return true;
-        }
-        return false;
-    }
-
-    public static void onEngineGetCertificateChain() {
-        if (!SystemProperties.getBoolean(SPOOF_PIXEL_PI, true))
-            return;
-        // Check stack for SafetyNet or Play Integrity
-        if (isCallerSafetyNet() || sIsFinsky) {
-            Log.i(TAG, "Blocked key attestation");
-            throw new UnsupportedOperationException();
-        }
-    }
 }
