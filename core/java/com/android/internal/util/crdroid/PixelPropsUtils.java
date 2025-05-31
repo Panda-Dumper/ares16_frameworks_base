@@ -230,7 +230,6 @@ public final class PixelPropsUtils {
         propsToChangeS24U.put("MODEL", "SM-S928B");
     }
 
-    private static volatile boolean sIsFinsky = false;
     private static volatile List<String> sCertifiedProps;
     private static volatile long sCertPropsMtime = -1;
 
@@ -250,7 +249,6 @@ public final class PixelPropsUtils {
                     propsToChange = propsToChangePixelXL;
                 }
             } else if (packageName.equals("com.android.vending")) {
-                sIsFinsky = true;
                 spoofBuildGms(context);
                 return;
             } else if (packageName.equals("com.google.android.gms")) {
