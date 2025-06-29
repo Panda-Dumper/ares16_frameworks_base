@@ -59,7 +59,6 @@ public final class PixelPropsUtils {
     private static final String SPOOF_PIXEL_PI = "persist.sys.pixelprops.pi";
     private static final String SPOOF_PIXEL_GAMES = "persist.sys.pixelprops.games";
     private static final String SPOOF_PIXEL_GPHOTOS = "persist.sys.pixelprops.gphotos";
-    private static final String SPOOF_PIXEL_NETFLIX = "persist.sys.pixelprops.netflix";
 
     private static final Map<String, Object> propsToChangeGeneric = new HashMap<>();
     private static final Map<String, Object> propsToChangePixel10ProXL = new HashMap<>();
@@ -110,7 +109,6 @@ public final class PixelPropsUtils {
             "com.google.android.settings.intelligence",
             "com.google.android.wallpaper.effects",
             "com.google.pixel.livewallpaper",
-            "com.netflix.mediaclient",
             "com.nhs.online.nhsonline"
         );
 
@@ -253,10 +251,6 @@ public final class PixelPropsUtils {
                 if (SystemProperties.getBoolean(SPOOF_PIXEL_GPHOTOS, true)) {
                     propsToChange = propsToChangePixelXL;
                 }
-            } else if (packageName.equals("com.netflix.mediaclient") && 
-                        !SystemProperties.getBoolean(SPOOF_PIXEL_NETFLIX, false)) {
-                    if (DEBUG) Log.d(TAG, "Netflix spoofing disabled by system prop");
-                    return;
             } else if (packageName.equals("com.android.vending")) {
                 sIsFinsky = true;
                 spoofBuildGms(context);
