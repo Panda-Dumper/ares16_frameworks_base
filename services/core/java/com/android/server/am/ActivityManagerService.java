@@ -483,6 +483,7 @@ import com.android.server.wm.ActivityMetricsLaunchObserver;
 import com.android.server.wm.ActivityServiceConnectionsHolder;
 import com.android.server.wm.ActivityTaskManagerInternal;
 import com.android.server.wm.ActivityTaskManagerService;
+import com.android.server.wm.GameSpaceService;
 import com.android.server.wm.WindowManagerInternal;
 import com.android.server.wm.WindowManagerService;
 import com.android.server.wm.WindowProcessController;
@@ -2237,6 +2238,7 @@ public class ActivityManagerService extends IActivityManager.Stub
             if (phase == PHASE_SYSTEM_SERVICES_READY) {
                 mService.mBatteryStatsService.systemServicesReady();
                 mService.mServices.systemServicesReady();
+                mService.startCustomServices();
             } else if (phase == PHASE_ACTIVITY_MANAGER_READY) {
                 mService.mBroadcastController.startBroadcastObservers();
             } else if (phase == PHASE_THIRD_PARTY_APPS_CAN_START) {
@@ -19514,6 +19516,32 @@ public class ActivityManagerService extends IActivityManager.Stub
     @Override
     public boolean isThreeFingersSwipeActive() {
         return mThreeFingersSwipeEnabled && mThreeFingerGestureActive;
+    }
+
+    public void startCustomServices() {
+        // TODO: service holder with lifecycle/phase hooks for race conditions
+        GameSpaceService.init(mContext, this);
+    }
+
+    public ProcessRecord getProcessRecord(String str) {
+        ProcessRecord processRecordLocked = null;
+        synchronized (mProcLock) {
+            try {
+                int currentUserId = getCurrentUserId();
+                int packageUid = getPackageManagerInternal().getPackageUid(str, 0, currentUserId);
+                processRecordLocked = getProcessRecordLocked(str, packageUid);
+            } catch (Exception e) {
+            }
+        }
+        return processRecordLocked;
+    }
+    
+    public boolean isPackageTopApp(String str) {
+        ProcessRecord gameProc = getProcessRecord(str);
+        return gameProc != null
+            && gameProc.getThread() != null
+            && gameProc.mState != null
+            && gameProc.mState.getCurrentSchedulingGroup() == ProcessList.SCHED_GROUP_TOP_APP;
     }
 
     @Override

@@ -362,4 +362,8 @@ public interface CentralSurfaces extends Dumpable, LifecycleOwner, CoreStartable
     void onBrightnessChanged(boolean upOrCancel);
     
     default void unlockedScreenOffAnimationCancel() {}
+    
+    default boolean shouldSuppressFullScreenIntent() {
+        return false;
+    }
 }
