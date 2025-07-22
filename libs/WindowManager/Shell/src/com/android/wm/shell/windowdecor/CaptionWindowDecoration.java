@@ -31,15 +31,20 @@ import android.app.WindowConfiguration;
 import android.app.WindowConfiguration.WindowingMode;
 import android.content.Context;
 import android.content.res.ColorStateList;
+import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Insets;
 import android.graphics.Point;
+import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.graphics.Region;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Handler;
+import android.widget.Button;
 import android.util.Size;
 import android.view.Choreographer;
 import android.view.Display;
@@ -75,7 +80,7 @@ import com.android.wm.shell.windowdecor.extension.TaskInfoKt;
  * {@link CaptionWindowDecorViewModel}. The caption bar contains a back button, minimize button,
  * maximize button and close button.
  */
-public class CaptionWindowDecoration extends WindowDecoration<WindowDecorLinearLayout> {
+public class CaptionWindowDecoration extends WindowDecoration<WindowDecorLinearLayout> implements VeilWindowDecoration {
     private final Handler mHandler;
     private final @ShellMainThread ShellExecutor mMainExecutor;
     private final @ShellBackgroundThread ShellExecutor mBgExecutor;
@@ -90,6 +95,8 @@ public class CaptionWindowDecoration extends WindowDecoration<WindowDecorLinearL
     private RelayoutParams mRelayoutParams = new RelayoutParams();
     private final RelayoutResult<WindowDecorLinearLayout> mResult =
             new RelayoutResult<>();
+            
+    private final VeiledResizer mVeiledResizer;
 
     CaptionWindowDecoration(
             Context context,
@@ -103,7 +110,8 @@ public class CaptionWindowDecoration extends WindowDecoration<WindowDecorLinearL
             @ShellBackgroundThread ShellExecutor bgExecutor,
             Choreographer choreographer,
             SyncTransactionQueue syncQueue,
-            @NonNull WindowDecorViewHostSupplier<WindowDecorViewHost> windowDecorViewHostSupplier) {
+            @NonNull WindowDecorViewHostSupplier<WindowDecorViewHost> windowDecorViewHostSupplier,
+            VeiledResizer veiledResizer) {
         super(context, userContext, displayController, taskOrganizer, taskInfo,
                 taskSurface, windowDecorViewHostSupplier);
         mHandler = handler;
@@ -111,6 +119,8 @@ public class CaptionWindowDecoration extends WindowDecoration<WindowDecorLinearL
         mBgExecutor = bgExecutor;
         mChoreographer = choreographer;
         mSyncQueue = syncQueue;
+        mVeiledResizer = veiledResizer;
+        mVeiledResizer.prepare(mTaskInfo, mTaskSurface, mSurfaceControlTransactionSupplier);
     }
 
     void setCaptionListeners(
@@ -218,21 +228,17 @@ public class CaptionWindowDecoration extends WindowDecoration<WindowDecorLinearL
             DisplayController displayController,
             boolean hasGlobalFocus,
             @NonNull Region globalExclusionRegion) {
+        final boolean isFreeform = taskInfo.getWindowingMode() == WindowConfiguration.WINDOWING_MODE_FREEFORM;
         relayoutParams.reset();
         relayoutParams.mRunningTaskInfo = taskInfo;
         relayoutParams.mLayoutResId = R.layout.caption_window_decor;
         relayoutParams.mCaptionHeightId = getCaptionHeightIdStatic(taskInfo.getWindowingMode());
-        if (DesktopExperienceFlags.ENABLE_DYNAMIC_RADIUS_COMPUTATION_BUGFIX.isTrue()) {
-            relayoutParams.mShadowRadiusId = hasGlobalFocus
-                    ? R.dimen.freeform_decor_shadow_focused_thickness
-                    : R.dimen.freeform_decor_shadow_unfocused_thickness;
-        } else {
-            relayoutParams.mShadowRadius = hasGlobalFocus
-                    ? context.getResources().getDimensionPixelSize(
-                    R.dimen.freeform_decor_shadow_focused_thickness)
-                    : context.getResources().getDimensionPixelSize(
-                            R.dimen.freeform_decor_shadow_unfocused_thickness);
-        }
+        relayoutParams.mShadowRadius = context.getResources().getDimensionPixelSize(
+                        R.dimen.freeform_decor_shadow_thickness);
+        relayoutParams.mCornerRadius = isFreeform
+                    ? loadDimensionPixelSize(context.getResources(),
+                    R.dimen.freeform_decor_radius)
+                    : 0;
         relayoutParams.mApplyStartTransactionOnDraw = applyStartTransactionOnDraw;
         relayoutParams.mSetTaskVisibilityPositionAndCrop = shouldSetTaskVisibilityPositionAndCrop;
         relayoutParams.mIsCaptionVisible = taskInfo.isFreeform()
@@ -334,7 +340,7 @@ public class CaptionWindowDecoration extends WindowDecoration<WindowDecorLinearL
                 .getScaledTouchSlop();
         final Resources res = mResult.mRootView.getResources();
         final DragResizeWindowGeometry newGeometry = new DragResizeWindowGeometry(
-                0 /* taskCornerRadius */,
+                mRelayoutParams.mCornerRadius /* taskCornerRadius */,
                 new Size(mResult.mWidth, mResult.mHeight),
                 getResizeEdgeHandleSize(res),
                 getResizeHandleEdgeInset(res), getFineResizeCornerSize(res),
@@ -365,23 +371,13 @@ public class CaptionWindowDecoration extends WindowDecoration<WindowDecorLinearL
         caption.setOnTouchListener(mOnCaptionTouchListener);
         final View close = caption.findViewById(R.id.close_window);
         close.setOnClickListener(mOnCaptionButtonClickListener);
-        final View back = caption.findViewById(R.id.back_button);
-        back.setOnClickListener(mOnCaptionButtonClickListener);
         final View minimize = caption.findViewById(R.id.minimize_window);
         minimize.setOnClickListener(mOnCaptionButtonClickListener);
-        final View maximize = caption.findViewById(R.id.maximize_window);
-        maximize.setOnClickListener(mOnCaptionButtonClickListener);
     }
 
     private void bindData(View rootView, RunningTaskInfo taskInfo) {
         // Set up the tint first so that the drawable can be stylized when loaded.
         setupCaptionColor(taskInfo);
-
-        final boolean isFullscreen =
-                taskInfo.getWindowingMode() == WindowConfiguration.WINDOWING_MODE_FULLSCREEN;
-        rootView.findViewById(R.id.maximize_window)
-                .setBackgroundResource(isFullscreen ? R.drawable.decor_restore_button_dark
-                        : R.drawable.decor_maximize_button_dark);
     }
 
     private void setupCaptionColor(RunningTaskInfo taskInfo) {
@@ -397,29 +393,33 @@ public class CaptionWindowDecoration extends WindowDecoration<WindowDecorLinearL
         if (mResult.mRootView == null) {
             return;
         }
-        int nightModeFlags = mContext.getResources().getConfiguration().uiMode & 
-                             android.content.res.Configuration.UI_MODE_NIGHT_MASK;
-        boolean isNightMode = nightModeFlags == android.content.res.Configuration.UI_MODE_NIGHT_YES;
-
-        int mCaptionColor = isNightMode ? Color.BLACK : Color.WHITE;
-        int buttonTintColorRes = isNightMode ? R.color.decor_button_light_color : R.color.decor_button_dark_color;
-        ColorStateList buttonTintColor = mContext.getResources().getColorStateList(buttonTintColorRes, null /* theme */);
 
         final View caption = mResult.mRootView.findViewById(R.id.caption);
         final GradientDrawable captionDrawable = (GradientDrawable) caption.getBackground();
-        captionDrawable.setColor(mCaptionColor);
+        captionDrawable.setColor(captionColor);
 
-        final View back = caption.findViewById(R.id.back_button);
-        back.setBackgroundTintList(buttonTintColor);
+        boolean isDark = Color.valueOf(captionColor).luminance() < 0.5;
+        final int textColorRes = isDark ? R.color.decor_button_light_color : R.color.decor_button_dark_color;
+        final int chipColorRes = isDark ? R.color.decor_chip_dark : R.color.decor_chip_light;
 
-        final View minimize = caption.findViewById(R.id.minimize_window);
-        minimize.setBackgroundTintList(buttonTintColor);
+        final Context context = caption.getContext();
+        final int textColor = context.getResources().getColor(textColorRes);
+        final int chipColor = context.getResources().getColor(chipColorRes);
 
-        final View maximize = caption.findViewById(R.id.maximize_window);
-        maximize.setBackgroundTintList(buttonTintColor);
+        GradientDrawable chipDrawable = new GradientDrawable();
+        chipDrawable.setColor(chipColor);
+        chipDrawable.setCornerRadius(100f);
 
-        final View close = caption.findViewById(R.id.close_window);
-        close.setBackgroundTintList(buttonTintColor);
+        final Button minimize = caption.findViewById(R.id.minimize_window);
+        minimize.setTextColor(textColor);
+        minimize.setBackground(chipDrawable.mutate());
+
+        final Button close = caption.findViewById(R.id.close_window);
+        close.setTextColor(textColor);
+        close.setBackground(chipDrawable.mutate());
+
+        final View drag = caption.findViewById(R.id.drag_handle);
+        drag.setBackgroundTintList(ColorStateList.valueOf(chipColor));
     }
 
     boolean isHandlingDragResize() {
@@ -457,9 +457,29 @@ public class CaptionWindowDecoration extends WindowDecoration<WindowDecorLinearL
         return mDragResizeListener != null && mDragResizeListener.shouldHandleEvent(e, offset);
     }
 
+    void createResizeVeil() {
+        mVeiledResizer.createResizeVeil();
+    }
+
+    @Override
+    public void updateResizeVeil(Rect bounds) {
+        mVeiledResizer.updateResizeVeil(bounds);
+    }
+
+    @Override
+    public void showResizeVeil(Rect bounds) {
+        mVeiledResizer.showResizeVeil(bounds);
+    }
+
+    @Override
+    public void hideResizeVeil() {
+        mVeiledResizer.hideResizeVeil();
+    }
+
     @Override
     public void close() {
         closeDragResizeListener();
+        mVeiledResizer.disposeResizeVeil();
         super.close();
     }
 
