@@ -52,11 +52,11 @@ public final class PixelPropsUtils {
 
     private static final String TAG = PixelPropsUtils.class.getSimpleName();
     private static final boolean DEBUG = Log.isLoggable(TAG, Log.DEBUG);
-    private static final String DATA_FILE = "gms_certified_props.json";
+    private static final String DATA_FILE = "cert_bp.json";
 
-    private static final String SPOOF_PIXEL_PI = "persist.sys.pixelprops.pi";
-    private static final String SPOOF_PIXEL_GAMES = "persist.sys.pixelprops.games";
-    private static final String SPOOF_PIXEL_GPHOTOS = "persist.sys.pixelprops.gphotos";
+    private static final String SPOOF_PIXEL_PI = "persist.sys.pp.pi";
+    private static final String SPOOF_PIXEL_GAMES = "persist.sys.pp.gam";
+    private static final String SPOOF_PIXEL_GPHOTOS = "persist.sys.pp.gph";
 
     private static final Map<String, Object> propsToChangeGeneric = new HashMap<>();
     private static final Map<String, Object> propsToChangePixel10ProXL = new HashMap<>();
@@ -367,7 +367,7 @@ public final class PixelPropsUtils {
         if (TextUtils.isEmpty(savedProps)) {
             if (DEBUG) Log.d(TAG, "Parsing props locally - data file unavailable");
             fresh = Arrays.asList(context.getResources()
-                     .getStringArray(R.array.config_certifiedBuildProperties));
+                     .getStringArray(R.array.config_certBP));
         } else {
             if (DEBUG) Log.d(TAG, "Parsing props fetched by attestation service");
             try {
@@ -382,7 +382,7 @@ public final class PixelPropsUtils {
                 Log.e(TAG, "Error parsing JSON data", e);
                 Log.d(TAG, "Parsing props locally as fallback");
                 fresh = Arrays.asList(context.getResources()
-                         .getStringArray(R.array.config_certifiedBuildProperties));
+                         .getStringArray(R.array.config_certBP));
             }
         }
         sCertifiedProps = new ArrayList<>(fresh);
