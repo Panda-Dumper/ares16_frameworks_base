@@ -46,8 +46,8 @@ public final class AttestationService extends SystemService {
     private static final String TAG = AttestationService.class.getSimpleName();
 
     private static final String API = "https://codeberg.org/ChrisCatto/android_vendor_certification/raw/branch/main/cert_bp.json";
-    private static final String SPOOF_PIXEL_PI = "persist.sys.pixelprops.pi";
-    private static final String DATA_FILE = "gms_certified_props.json";
+    private static final String SPOOF_PIXEL_PI = "persist.sys.pp.pi";
+    private static final String DATA_FILE = "cert_bp.json";
     private static final long INITIAL_DELAY = 0; // Start immediately on boot
     private static final long INTERVAL = 4; // Interval in hours
     private static final boolean DEBUG = Log.isLoggable(TAG, Log.DEBUG);
