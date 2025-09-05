@@ -7232,12 +7232,6 @@ public final class Settings {
         public static final String SCREENSHOT_SHUTTER_SOUND = "screenshot_shutter_sound";
 
         /**
-         * Haptic feedback on brightness slider
-         * @hide
-         */
-        public static final String QS_BRIGHTNESS_SLIDER_HAPTIC = "qs_brightness_slider_haptic";
-
-        /**
          * Whether to show daily data usage in the QS footer.
          * @hide
          */
