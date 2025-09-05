@@ -7250,12 +7250,6 @@ public final class Settings {
         public static final String QS_TILE_SHAPE = "qs_tile_shape";
 
         /**
-         * Customize Brightness slider shape.
-         * @hide
-         */
-        public static final String QS_BRIGHTNESS_SLIDER_SHAPE = "qs_brightness_slider_shape";
-
-        /**
          * @hide
          */
         public static final String QS_TILES_COLUMNS_LANDSCAPE = "qs_tiles_columns_landscape";
