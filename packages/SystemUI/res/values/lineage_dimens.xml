@@ -31,8 +31,8 @@
     <dimen name="network_speed_view_width">22dp</dimen>
 
     <!-- QuickSettings -->
-    <dimen name="qs_status_bar_margin_end">16dp</dimen>
-    <dimen name="qs_status_bar_margin_start">16dp</dimen>
+    <dimen name="qs_status_bar_margin_end">8dp</dimen>
+    <dimen name="qs_status_bar_margin_start">8dp</dimen>
     <dimen name="qs_status_bar_margin_top">16dp</dimen>
     <dimen name="qs_status_bar_data_margin_top">-7dp</dimen>
     <dimen name="qqs_status_bar_margin_top">12dp</dimen>
