@@ -181,20 +181,6 @@ constructor(
                 },
         )
 
-    val qsExtraPaddingTop by
-        hydrator.hydratedStateOf(
-            traceName = "qsExtraPaddingTop",
-            initialValue = 0,
-            source =
-                configurationInteractor.onAnyConfigurationChange.map {
-                    if (isInSplitShade || LargeScreenUtils.shouldUseLargeScreenShadeHeader(resources)) {
-                        0
-                    } else {
-                        resources.getDimensionPixelSize(R.dimen.nt_qs_panel_padding_top)
-                    }
-                },
-        )
-
     val qqsBottomPadding by
         hydrator.hydratedStateOf(
             traceName = "qqsBottomPadding",
